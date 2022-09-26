@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}
+  Это главная страница проекта Yatube
+{% endblock %}
+{% block content %}
+  {% include 'posts/includes/switcher.html' %}
+  <div class="container">
+    <h1>Последние обновления на сайте</h1>
+    <article>
+      {{ posts }}
+      {% for post in page_obj %}
+        {% include 'includes/card_post.html' %}   
+        <p> {% if post.group %}   
+          <a href="{% url 'posts:group_posts' post.group.slug %}">все записи группы</a>
+        {% endif %} </p>
+        {% if not forloop.last %}<hr>{% endif %}
+      {% endfor %}
+    </article>
+  </div>
+{% endblock %}
