@@ -1,6 +1,7 @@
 from django.views.decorators.cache import cache_page
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
+from django.db.utils import IntegrityError
 
 from posts.forms import CommentForm, PostForm
 from posts.models import Follow, Group, Post, User
@@ -122,11 +123,7 @@ def add_comment(request, post_id):
 def follow_index(request):
     """Возвращает страницу с постами авторов, на которых есть подписка"""
     template = 'posts/index.html'
-    following = request.user.follower.select_related('author').all()
-    author_list = []
-    for author in following:
-        author_list.append(author.author.id)
-    post_list = Post.objects.filter(author__in=author_list).all()
+    post_list = Post.objects.filter(author__following__user=request.user)
     page_obj = get_page_obj(request, post_list)
     context = {
         'page_obj': page_obj,
@@ -139,12 +136,8 @@ def profile_follow(request, username):
     """Обрабатывает кнопку 'Подписаться' на странице profile"""
     author = get_object_or_404(User, username=username)
     user = request.user
-    #following = Follow.objects.filter(
-    #    user=request.user.id,
-    #    author=author.id,
-    #).exists()
-    if author != user: #and not following:
-        Follow.objects.create(user=user, author=author)
+    if author != user:
+        Follow.objects.get_or_create(user=user, author=author)
     return redirect('posts:profile', username=username)
 
 
