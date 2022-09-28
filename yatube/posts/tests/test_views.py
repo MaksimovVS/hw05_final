@@ -275,3 +275,14 @@ class PostsPagesTests(TestCase):
         for result, response in result_and_responses.items():
             context = response.context['page_obj']
             self.assertEqual(self.post in context, result)
+
+    def test_vovkin_test(self):
+        """
+        Vovkin test
+        """
+        print(Follow.objects.all())
+        self.unfollower_client.get(reverse('posts:profile_follow', args=['author']))
+        print(Follow.objects.all())
+        self.unfollower_client.get(
+            reverse('posts:profile_follow', args=['author']))
+        print(Follow.objects.all())

@@ -139,11 +139,11 @@ def profile_follow(request, username):
     """Обрабатывает кнопку 'Подписаться' на странице profile"""
     author = get_object_or_404(User, username=username)
     user = request.user
-    following = Follow.objects.filter(
-        user=request.user.id,
-        author=author.id,
-    ).exists()
-    if author != user and not following:
+    #following = Follow.objects.filter(
+    #    user=request.user.id,
+    #    author=author.id,
+    #).exists()
+    if author != user: #and not following:
         Follow.objects.create(user=user, author=author)
     return redirect('posts:profile', username=username)
 

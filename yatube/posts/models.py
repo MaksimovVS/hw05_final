@@ -71,7 +71,7 @@ class Comment(models.Model):
         Post,
         on_delete=models.CASCADE,
         related_name='comments',
-        verbose_name='Текст комментария',
+        verbose_name='Текст поста',
     )
     author = models.ForeignKey(
         User,
@@ -105,16 +105,21 @@ class Follow(models.Model):
         related_name='follower',
         verbose_name='Подписчик',
     )
-    author = models.ForeignKey(
+    author = models.ManyToManyField(
         User,
         on_delete=models.CASCADE,
         related_name='following',
-        verbose_name='Блогер',
+        verbose_name='Автор',
     )
 
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('user', 'author'),
+                name='unique_follow',
+            )]
 
     def __str__(self):
         return f'{self.user} подписан на {self.author}'
