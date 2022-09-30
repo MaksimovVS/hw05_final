@@ -267,6 +267,7 @@ class PostsPagesTests(TestCase):
             author=self.user.id,
         ).exists()
         self.assertFalse(following)
+
     def test_new_post_appears_in_feed_only_for_subscribers(self):
         """
         Новая запись автора появляется в ленте только у подписанных
