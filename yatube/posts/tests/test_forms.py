@@ -6,7 +6,8 @@ from django.conf import settings
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from posts.models import Group, Post, User
+from posts.models import Comment, Group, Post, User
+
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -49,6 +50,11 @@ class PostsCreateFormsTests(TestCase):
             content=cls.small_gif,
             content_type='image/gif',
         )
+        cls.uploaded2 = SimpleUploadedFile(
+            name='small2.gif',
+            content=cls.small_gif,
+            content_type='image/gif',
+        )
 
     @classmethod
     def tearDownClass(cls):
@@ -56,7 +62,7 @@ class PostsCreateFormsTests(TestCase):
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def test_create_post(self):
-        """Валидная форма создает запись в БД"""
+        """Валидная форма создает запись в БД."""
         posts_count = Post.objects.count()
         form_data = {
             'text': 'Тестовый пост!',
@@ -80,11 +86,12 @@ class PostsCreateFormsTests(TestCase):
         ).exists())
 
     def test_edit_post(self):
-        """Валидная форма изменяет запись в БД"""
+        """Валидная форма изменяет запись в БД."""
         posts_count = Post.objects.count()
         form_data = {
             'text': 'Пост тестовый!',
             'group': 2,
+            'image': self.uploaded2,
         }
         response = self.auth_client.post(
             reverse('posts:post_edit', args=[self.post.pk]),
@@ -98,5 +105,27 @@ class PostsCreateFormsTests(TestCase):
         self.assertTrue(Post.objects.filter(
             text='Пост тестовый!',
             group=2,
+            author=self.user,
+            image='posts/small2.gif'
+        ).exists())
+
+    def test_add_comment(self):
+        """Валидная форма создает комментарий и сохраняет в БД."""
+        comment_count = Comment.objects.count()
+        form_data = {
+            'text': 'Тестовый комментарий',
+        }
+        response = self.auth_client.post(
+            reverse('posts:add_comment', args=[self.post.pk]),
+            data=form_data,
+            follow=True,
+        )
+        self.assertRedirects(
+            response, reverse('posts:post_detail', args=[self.post.pk])
+        )
+        self.assertEqual(Comment.objects.count(), comment_count + 1)
+        self.assertTrue(Comment.objects.filter(
+            text='Тестовый комментарий',
+            post=self.post,
             author=self.user,
         ).exists())

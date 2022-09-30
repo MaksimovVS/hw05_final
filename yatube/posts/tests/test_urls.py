@@ -4,7 +4,7 @@ from posts.models import Group, Post, User
 
 
 class PostsURLTests(TestCase):
-    """Тестирование URL приложения posts"""
+    """Тестирование URL приложения posts."""
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -59,14 +59,14 @@ class PostsURLTests(TestCase):
                 )
 
     def test_status_code_404(self):
-        """Проверяем, что обращение на несуществующую страницу вернет 404"""
+        """Проверяем, что обращение на несуществующую страницу вернет 404."""
         self.assertEqual(
             self.guest_client.get('/unexisting_page/').reason_phrase,
             'Not Found'
         )
 
     def test_urls_exists_at_desired_location_auth_user(self):
-        """Проверяем ответ страницы для авторизованного пользователя"""
+        """Проверяем ответ страницы для авторизованного пользователя."""
         status_code_url = {
             '/create/': 'OK',
             '/posts/1/edit/': 'Found',
@@ -79,7 +79,7 @@ class PostsURLTests(TestCase):
     def test_urls_exists_at_desired_location_no_auth_user(self):
         """
         Проверяем ответ страницы редактирования поста и добавления комментария
-        для неавторизованного пользователя
+        для неавторизованного пользователя.
         """
         status_code_url = {
             '/posts/1/edit/': 'Found',

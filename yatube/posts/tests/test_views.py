@@ -46,13 +46,13 @@ class PostsPagesTests(TestCase):
             description='Тестовое описание2',
         )
 
-        for i in range(1, 12):
-            Post.objects.create(
-                author=cls.user,
-                text=f'Тестовый пост!!![{i}]',
-                group_id=1,
-                id=i,
-            )
+        Post.objects.bulk_create(Post(
+            author=cls.user,
+            text=f'Тестовый пост!!![{i}]',
+            group_id=1,
+            id=i,
+        ) for i in range(1, 12))
+
         cls.post_to_delete = Post.objects.create(
             author=cls.user,
             text='Тестовый пост для проверки кэша!!!',
@@ -93,7 +93,7 @@ class PostsPagesTests(TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        super().setUpClass()
+        super().tearDownClass()
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def test_pages_uses_correct_template(self):
@@ -121,14 +121,14 @@ class PostsPagesTests(TestCase):
                 self.assertTemplateUsed(response, template)
 
     def test_index_show_correct_context(self):
-        """Проверяем, что шаблон index получает правильный контекст"""
+        """Проверяем, что шаблон index получает правильный контекст."""
         response = self.client.get(reverse('posts:index'))
         last_object = response.context['page_obj'][self.FIRST_OBJ]
         self.assertEqual(last_object.text, self.post.text)
         self.assertEqual(last_object.image, self.post.image)
 
     def test_group_list_show_correct_context(self):
-        """Проверяем, что шаблон group_list получает правильный контекст"""
+        """Проверяем, что шаблон group_list получает правильный контекст."""
         response = self.auth_client.get(reverse(
             'posts:group_posts', kwargs={'slug': 'test-slug'}
         ))
@@ -138,7 +138,7 @@ class PostsPagesTests(TestCase):
         self.assertEqual(context_group, self.group.title)
 
     def test_profile_show_correct_context(self):
-        """Проверяем, что шаблон profile получает правильный контекст"""
+        """Проверяем, что шаблон profile получает правильный контекст."""
         response = self.auth_client.get(reverse(
             'posts:profile', args=['author']
         ))
@@ -148,7 +148,7 @@ class PostsPagesTests(TestCase):
         self.assertEqual(context_author, 'author')
 
     def test_post_detail_show_correct_context(self):
-        """Проверяем, что шаблон post_detail получает правильный контекст"""
+        """Проверяем, что шаблон post_detail получает правильный контекст."""
         post = PostsPagesTests.post
         response = self.auth_client.get(reverse(
             'posts:post_detail', args=[post.pk]
@@ -159,7 +159,7 @@ class PostsPagesTests(TestCase):
         self.assertEqual(context_comment, 'Тестовый комментарий')
 
     def test_post_create_show_correct_context(self):
-        """Проверяем, что шаблон post_create получает правильный контекст"""
+        """Проверяем, что шаблон post_create получает правильный контекст."""
         response = self.auth_client.get(reverse('posts:post_create'))
         form_fields = {
             'text': forms.fields.CharField,
@@ -171,7 +171,7 @@ class PostsPagesTests(TestCase):
                 self.assertIsInstance(form_field, expected)
 
     def test_post_edit_show_correct_context(self):
-        """Проверяем, что шаблон post_edit получает правильный контекст"""
+        """Проверяем, что шаблон post_edit получает правильный контекст."""
         post = PostsPagesTests.post
         response = self.auth_client.get(reverse(
             'posts:post_edit', args=[post.pk]
@@ -188,7 +188,7 @@ class PostsPagesTests(TestCase):
         self.assertTrue(context_is_edit)
 
     def test_pagintator_page_records(self):
-        """Проверяем работу Paginator'a"""
+        """Проверяем работу Paginator'a."""
         pages_names_paginator = {
             reverse('posts:index'): {
                 '': 10,
@@ -211,7 +211,7 @@ class PostsPagesTests(TestCase):
                     self.assertEqual(len(context), post_cnt)
 
     def test_creating_post(self):
-        """Проверяем, что пост отображатся где надо"""
+        """Проверяем, что пост отображатся где надо."""
         pages_names_presence_post = {
             reverse('posts:index'): True,
             reverse('posts:group_posts', kwargs={'slug': 'test-slug'}): True,
@@ -228,7 +228,7 @@ class PostsPagesTests(TestCase):
                 self.assertEqual(post in context, presence_post)
 
     def test_save_post_in_cache(self):
-        """Пост сохраняется в кэше и пропадает после отчистки кэша"""
+        """Пост сохраняется в кэше и пропадает после отчистки кэша."""
         # Первый запрос для того, что бы кэшировались посты на странице
         self.response()
         # даляем пост из БД и запрашиваем пост из кэша
@@ -243,30 +243,34 @@ class PostsPagesTests(TestCase):
         )
 
     def response(self):
-        """Возращает ответ сервера на запрос пользователя страницы index"""
+        """Возращает ответ сервера на запрос пользователя страницы index."""
         return self.client.get(reverse('posts:index'))
 
-    def test_authorized_user_subscribe_to_authors(self):
-        """
-        Авторизованный пользователь может подписаться и отписатьсаться
-        на автора
-        """
-        pages_names_result = {
-            reverse('posts:profile_follow', args=['author']): True,
-            reverse('posts:profile_unfollow', args=['author']): False,
-        }
-        for pages_name, result in pages_names_result.items():
-            self.unfollower_client.get(pages_name)
-            following = Follow.objects.filter(
-                user=self.unfollower.id,
-                author=self.user.id,
-            ).exists()
-            self.assertEqual(following, result)
+    def test_authorized_user_follow_authors(self):
+        """Авторизованный пользователь может подписаться на автора."""
+        self.unfollower_client.get(reverse(
+            'posts:profile_follow', args=['author']
+        ))
+        following = Follow.objects.filter(
+            user=self.unfollower.id,
+            author=self.user.id,
+        ).exists()
+        self.assertTrue(following)
 
+    def test_authorized_user_unfollow_authors(self):
+        """Авторизованный пользователь может отписатьсаться на автора."""
+        self.follower_client.get(reverse(
+            'posts:profile_unfollow', args=['author']
+        ))
+        following = Follow.objects.filter(
+            user=self.follower.id,
+            author=self.user.id,
+        ).exists()
+        self.assertFalse(following)
     def test_new_post_appears_in_feed_only_for_subscribers(self):
         """
         Новая запись автора появляется в ленте только у подписанных
-        пользователей
+        пользователей.
         """
         result_and_responses = {
             True: self.follower_client.get(reverse('posts:follow_index')),

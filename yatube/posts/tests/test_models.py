@@ -4,7 +4,7 @@ from posts.models import Group, Post, User
 
 
 class PostsModelTest(TestCase):
-    """Тестирование моделей приложения posts"""
+    """Тестирование моделей приложения posts."""
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
